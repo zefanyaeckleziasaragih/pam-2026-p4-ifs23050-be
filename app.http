@@ -1,5 +1,5 @@
 ## Global Variabel
-@BaseUrl = https://pam-2026-p4-ifs18005-be.delcom.org:8080
+@BaseUrl = https://pam-2026-p4-ifs23050-be.delcom.org:8080
 #@BaseUrl = http://127.0.0.1:8000
 
 ## Profile
@@ -126,4 +126,128 @@ Content-Type: image/png
 ### Menghapus data plant berdasarkan id-nya
 # @name DeletePlant
 DELETE {{BaseUrl}}/plants/{{plantId}}
+Content-Type: application/json
+
+## Flowers / Bahasa Bunga
+## ===========================================
+
+### Mengambil semua data bahasa bunga
+# @name GetAllFlowers
+GET {{BaseUrl}}/flowers?search=
+Content-Type: application/json
+
+#> {%
+#    client.global.set("flowerId", response.body.data.flowers[0].id);
+#    console.log(client.global.get("flowerId"))
+#%}
+
+### Menambahkan data bahasa bunga baru
+# @name PostFlower
+POST {{BaseUrl}}/flowers
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="namaUmum"
+
+Mawar Merah
+--WebAppBoundary
+Content-Disposition: form-data; name="namaLatin"
+
+Rosa damascena
+--WebAppBoundary
+Content-Disposition: form-data; name="makna"
+
+Cinta mendalam & gairah
+--WebAppBoundary
+Content-Disposition: form-data; name="asalBudaya"
+
+Eropa Victoria, Timur Tengah
+--WebAppBoundary
+Content-Disposition: form-data; name="deskripsi"
+
+Mawar merah adalah simbol cinta paling universal. Dalam tradisi Eropa Victoria, memberikan mawar merah berarti menyatakan cinta secara diam-diam.
+--WebAppBoundary
+Content-Disposition: form-data; name="file"; filename="example.png"
+Content-Type: image/png
+
+< ./example.png
+--WebAppBoundary--
+
+> {%
+    client.global.set("flowerId", response.body.data.flowerId);
+    console.log(client.global.get("flowerId"))
+%}
+
+### Mengambil data bahasa bunga berdasarkan id-nya
+# @name GetFlowerById
+GET {{BaseUrl}}/flowers/{{flowerId}}
+Content-Type: application/json
+
+### Melihat gambar bunga
+# @name GetFlowerImageById
+GET {{BaseUrl}}/flowers/{{flowerId}}/image
+Content-Type: application/json
+
+### Mengubah hanya data bunga (tanpa gambar baru)
+# @name PutFlowerOnlyData
+PUT {{BaseUrl}}/flowers/{{flowerId}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="namaUmum"
+
+Mawar Merah Update
+--WebAppBoundary
+Content-Disposition: form-data; name="namaLatin"
+
+Rosa damascena
+--WebAppBoundary
+Content-Disposition: form-data; name="makna"
+
+Cinta sejati & gairah abadi
+--WebAppBoundary
+Content-Disposition: form-data; name="asalBudaya"
+
+Eropa Victoria
+--WebAppBoundary
+Content-Disposition: form-data; name="deskripsi"
+
+Mawar merah melambangkan cinta yang tulus dan abadi.
+--WebAppBoundary--
+
+### Mengubah data dan gambar bunga
+# @name PutFlower
+PUT {{BaseUrl}}/flowers/{{flowerId}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="namaUmum"
+
+Mawar Merah
+--WebAppBoundary
+Content-Disposition: form-data; name="namaLatin"
+
+Rosa damascena
+--WebAppBoundary
+Content-Disposition: form-data; name="makna"
+
+Cinta mendalam & gairah
+--WebAppBoundary
+Content-Disposition: form-data; name="asalBudaya"
+
+Eropa Victoria, Timur Tengah
+--WebAppBoundary
+Content-Disposition: form-data; name="deskripsi"
+
+Mawar merah adalah simbol cinta paling universal di dunia.
+--WebAppBoundary
+Content-Disposition: form-data; name="file"; filename="example.png"
+Content-Type: image/png
+
+< ./example.png
+--WebAppBoundary--
+
+### Menghapus data bunga berdasarkan id-nya
+# @name DeleteFlower
+DELETE {{BaseUrl}}/flowers/{{flowerId}}
 Content-Type: application/json
