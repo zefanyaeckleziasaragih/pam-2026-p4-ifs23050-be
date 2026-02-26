@@ -1,10 +1,10 @@
 package org.delcom.data
 
 import kotlinx.serialization.Serializable
-import org.delcom.entities.Flower
+import org.delcom.entities.Zodiac
 
 @Serializable
-data class FlowerRequest(
+data class ZodiacRequest(
     var namaUmum   : String = "",
     var namaLatin  : String = "",
     var makna      : String = "",
@@ -21,7 +21,7 @@ data class FlowerRequest(
         "pathGambar" to pathGambar,
     )
 
-    fun toEntity(): Flower = Flower(
+    fun toEntity(): Zodiac = Zodiac(
         namaUmum   = namaUmum,
         namaLatin  = namaLatin,
         makna      = makna,

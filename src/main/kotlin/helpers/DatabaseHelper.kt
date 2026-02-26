@@ -1,7 +1,7 @@
 package org.delcom.helpers
 
 import io.ktor.server.application.*
-import org.delcom.tables.FlowerTable
+import org.delcom.tables.ZodiacTable
 import org.delcom.tables.PlantTable
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
@@ -22,6 +22,6 @@ fun Application.configureDatabases() {
 
     // Buat tabel jika belum ada
     transaction {
-        SchemaUtils.createMissingTablesAndColumns(PlantTable, FlowerTable)
+        SchemaUtils.createMissingTablesAndColumns(PlantTable, ZodiacTable)
     }
 }

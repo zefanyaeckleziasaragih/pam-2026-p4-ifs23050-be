@@ -9,24 +9,24 @@ import io.ktor.util.cio.*
 import io.ktor.utils.io.*
 import org.delcom.data.AppException
 import org.delcom.data.DataResponse
-import org.delcom.data.FlowerRequest
+import org.delcom.data.ZodiacRequest
 import org.delcom.helpers.ValidatorHelper
-import org.delcom.repositories.IFlowerRepository
+import org.delcom.repositories.IZodiacRepository
 import java.io.File
 import java.util.UUID
 
-class ZodiacService(private val flowerRepository: IFlowerRepository) {
+class ZodiacService(private val zodiacRepository: IZodiacRepository) {
 
     // ── GET /flowers?search= ─────────────────────────────────────────────────
     suspend fun getAllZodiacs(call: ApplicationCall) {
-        val search = call.request.queryParameters["search"] ?: ""
-        val flowers = flowerRepository.getFlowers(search)
+        val search  = call.request.queryParameters["search"] ?: ""
+        val zodiacs = zodiacRepository.getZodiacs(search)
 
         call.respond(
             DataResponse(
                 status  = "success",
                 message = "Berhasil mengambil daftar data zodiak",
-                data    = mapOf("flowers" to flowers),
+                data    = mapOf("flowers" to zodiacs),
             )
         )
     }
@@ -36,21 +36,21 @@ class ZodiacService(private val flowerRepository: IFlowerRepository) {
         val id = call.parameters["id"]
             ?: throw AppException(400, "ID zodiak tidak boleh kosong!")
 
-        val flower = flowerRepository.getFlowerById(id)
+        val zodiac = zodiacRepository.getZodiacById(id)
             ?: throw AppException(404, "Data zodiak tidak ditemukan!")
 
         call.respond(
             DataResponse(
                 status  = "success",
                 message = "Berhasil mengambil data zodiak",
-                data    = mapOf("flower" to flower),
+                data    = mapOf("flower" to zodiac),
             )
         )
     }
 
     // ── Parse multipart request ──────────────────────────────────────────────
-    private suspend fun getZodiacRequest(call: ApplicationCall): FlowerRequest {
-        val req = FlowerRequest()
+    private suspend fun getZodiacRequest(call: ApplicationCall): ZodiacRequest {
+        val req = ZodiacRequest()
 
         val multipart = call.receiveMultipart(formFieldLimit = 1024 * 1024 * 5)
         multipart.forEachPart { part ->
@@ -90,7 +90,7 @@ class ZodiacService(private val flowerRepository: IFlowerRepository) {
     }
 
     // ── Validate request ─────────────────────────────────────────────────────
-    private fun validateFlowerRequest(req: FlowerRequest) {
+    private fun validateZodiacRequest(req: ZodiacRequest) {
         val v = ValidatorHelper(req.toMap())
         v.required("namaUmum",   "Nama zodiak tidak boleh kosong")
         v.required("namaLatin",  "Simbol/nama latin tidak boleh kosong")
@@ -109,22 +109,21 @@ class ZodiacService(private val flowerRepository: IFlowerRepository) {
     // ── POST /flowers ────────────────────────────────────────────────────────
     suspend fun createZodiac(call: ApplicationCall) {
         val req = getZodiacRequest(call)
-        validateFlowerRequest(req)
+        validateZodiacRequest(req)
 
-        // Cek duplikasi nama
-        val existing = flowerRepository.getFlowerByNamaUmum(req.namaUmum)
+        val existing = zodiacRepository.getZodiacByNamaUmum(req.namaUmum)
         if (existing != null) {
             File(req.pathGambar).takeIf { it.exists() }?.delete()
             throw AppException(409, "Zodiak dengan nama ini sudah terdaftar!")
         }
 
-        val flowerId = flowerRepository.addFlower(req.toEntity())
+        val zodiacId = zodiacRepository.addZodiac(req.toEntity())
 
         call.respond(
             DataResponse(
                 status  = "success",
                 message = "Berhasil menambahkan data zodiak",
-                data    = mapOf("flowerId" to flowerId),
+                data    = mapOf("flowerId" to zodiacId),
             )
         )
     }
@@ -134,33 +133,30 @@ class ZodiacService(private val flowerRepository: IFlowerRepository) {
         val id = call.parameters["id"]
             ?: throw AppException(400, "ID zodiak tidak boleh kosong!")
 
-        val oldFlower = flowerRepository.getFlowerById(id)
+        val oldZodiac = zodiacRepository.getZodiacById(id)
             ?: throw AppException(404, "Data zodiak tidak ditemukan!")
 
         val req = getZodiacRequest(call)
 
-        // Pertahankan gambar lama jika tidak ada upload baru
         if (req.pathGambar.isEmpty()) {
-            req.pathGambar = oldFlower.pathGambar
+            req.pathGambar = oldZodiac.pathGambar
         }
 
-        validateFlowerRequest(req)
+        validateZodiacRequest(req)
 
-        // Cek duplikasi nama (hanya jika nama berubah)
-        if (req.namaUmum != oldFlower.namaUmum) {
-            val existing = flowerRepository.getFlowerByNamaUmum(req.namaUmum)
+        if (req.namaUmum != oldZodiac.namaUmum) {
+            val existing = zodiacRepository.getZodiacByNamaUmum(req.namaUmum)
             if (existing != null) {
                 File(req.pathGambar).takeIf { it.exists() }?.delete()
                 throw AppException(409, "Zodiak dengan nama ini sudah terdaftar!")
             }
         }
 
-        // Hapus gambar lama jika ada gambar baru
-        if (req.pathGambar != oldFlower.pathGambar) {
-            File(oldFlower.pathGambar).takeIf { it.exists() }?.delete()
+        if (req.pathGambar != oldZodiac.pathGambar) {
+            File(oldZodiac.pathGambar).takeIf { it.exists() }?.delete()
         }
 
-        val isUpdated = flowerRepository.updateFlower(id, req.toEntity())
+        val isUpdated = zodiacRepository.updateZodiac(id, req.toEntity())
         if (!isUpdated) {
             throw AppException(400, "Gagal memperbarui data zodiak!")
         }
@@ -179,12 +175,12 @@ class ZodiacService(private val flowerRepository: IFlowerRepository) {
         val id = call.parameters["id"]
             ?: throw AppException(400, "ID zodiak tidak boleh kosong!")
 
-        val oldFlower = flowerRepository.getFlowerById(id)
+        val oldZodiac = zodiacRepository.getZodiacById(id)
             ?: throw AppException(404, "Data zodiak tidak ditemukan!")
 
-        val oldFile = File(oldFlower.pathGambar)
+        val oldFile = File(oldZodiac.pathGambar)
 
-        val isDeleted = flowerRepository.removeFlower(id)
+        val isDeleted = zodiacRepository.removeZodiac(id)
         if (!isDeleted) {
             throw AppException(400, "Gagal menghapus data zodiak!")
         }
@@ -205,10 +201,10 @@ class ZodiacService(private val flowerRepository: IFlowerRepository) {
         val id = call.parameters["id"]
             ?: return call.respond(HttpStatusCode.BadRequest)
 
-        val flower = flowerRepository.getFlowerById(id)
+        val zodiac = zodiacRepository.getZodiacById(id)
             ?: return call.respond(HttpStatusCode.NotFound)
 
-        val file = File(flower.pathGambar)
+        val file = File(zodiac.pathGambar)
         if (!file.exists()) {
             return call.respond(HttpStatusCode.NotFound)
         }

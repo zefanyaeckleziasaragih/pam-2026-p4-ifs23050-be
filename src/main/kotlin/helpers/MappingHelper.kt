@@ -1,9 +1,9 @@
 package org.delcom.helpers
 
 import kotlinx.coroutines.Dispatchers
-import org.delcom.dao.FlowerDAO
+import org.delcom.dao.ZodiacDAO
 import org.delcom.dao.PlantDAO
-import org.delcom.entities.Flower
+import org.delcom.entities.Zodiac
 import org.delcom.entities.Plant
 import org.jetbrains.exposed.sql.Transaction
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
@@ -22,7 +22,7 @@ fun daoToModel(dao: PlantDAO) = Plant(
     dao.updatedAt
 )
 
-fun flowerDaoToModel(dao: FlowerDAO) = Flower(
+fun zodiacDaoToModel(dao: ZodiacDAO) = Zodiac(
     id         = dao.id.value.toString(),
     namaUmum   = dao.namaUmum,
     namaLatin  = dao.namaLatin,

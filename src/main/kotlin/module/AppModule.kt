@@ -1,14 +1,13 @@
 package org.delcom.module
 
-import org.delcom.repositories.FlowerRepository
-import org.delcom.repositories.IFlowerRepository
+import org.delcom.repositories.IZodiacRepository
 import org.delcom.repositories.IPlantRepository
 import org.delcom.repositories.PlantRepository
+import org.delcom.repositories.ZodiacRepository
 import org.delcom.services.ZodiacService
 import org.delcom.services.PlantService
 import org.delcom.services.ProfileService
 import org.koin.dsl.module
-
 
 val appModule = module {
     // Plant Repository
@@ -26,12 +25,12 @@ val appModule = module {
         ProfileService()
     }
 
-    // Flower Repository
-    single<IFlowerRepository> {
-        FlowerRepository()
+    // Zodiac Repository
+    single<IZodiacRepository> {
+        ZodiacRepository()
     }
 
-    // Flower Service
+    // Zodiac Service
     single {
         ZodiacService(get())
     }
