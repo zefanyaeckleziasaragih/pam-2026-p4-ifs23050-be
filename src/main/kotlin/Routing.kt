@@ -8,7 +8,7 @@ import io.ktor.server.routing.*
 import org.delcom.data.AppException
 import org.delcom.data.ErrorResponse
 import org.delcom.helpers.parseMessageToMap
-import org.delcom.services.FlowerService
+import org.delcom.services.ZodiacService
 import org.delcom.services.PlantService
 import org.delcom.services.ProfileService
 import org.koin.ktor.ext.inject
@@ -16,7 +16,7 @@ import org.koin.ktor.ext.inject
 fun Application.configureRouting() {
     val plantService: PlantService by inject()
     val profileService: ProfileService by inject()
-    val flowerService: FlowerService by inject()
+    val zodiacService: ZodiacService by inject()
 
     install(StatusPages) {
         // Tangkap AppException
@@ -48,7 +48,7 @@ fun Application.configureRouting() {
 
     routing {
         get("/") {
-            call.respondText("API telah berjalan. Dibuat oleh Zefanya Ecklezia Saragih.")
+            call.respondText("API Delcom Zodiac telah berjalan. Dibuat oleh Zefanya Ecklezia Saragih.")
         }
 
         // Route Plants
@@ -75,7 +75,7 @@ fun Application.configureRouting() {
         }
 
         // Route Profile
-        route("/profile"){
+        route("/profile") {
             get {
                 profileService.getProfile(call)
             }
@@ -84,25 +84,25 @@ fun Application.configureRouting() {
             }
         }
 
-        // Route Flowers (Bahasa Bunga)
+        // Route Flowers / Zodiac (endpoint tetap /flowers agar tidak perlu ganti backend)
         route("/flowers") {
             get {
-                flowerService.getAllFlowers(call)
+                zodiacService.getAllZodiacs(call)
             }
             post {
-                flowerService.createFlower(call)
+                zodiacService.createZodiac(call)
             }
             get("/{id}") {
-                flowerService.getFlowerById(call)
+                zodiacService.getZodiacById(call)
             }
             put("/{id}") {
-                flowerService.updateFlower(call)
+                zodiacService.updateZodiac(call)
             }
             delete("/{id}") {
-                flowerService.deleteFlower(call)
+                zodiacService.deleteZodiac(call)
             }
             get("/{id}/image") {
-                flowerService.getFlowerImage(call)
+                zodiacService.getZodiacImage(call)
             }
         }
     }

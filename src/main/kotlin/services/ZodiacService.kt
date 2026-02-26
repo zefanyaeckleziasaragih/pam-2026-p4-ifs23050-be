@@ -15,41 +15,41 @@ import org.delcom.repositories.IFlowerRepository
 import java.io.File
 import java.util.UUID
 
-class FlowerService(private val flowerRepository: IFlowerRepository) {
+class ZodiacService(private val flowerRepository: IFlowerRepository) {
 
     // ── GET /flowers?search= ─────────────────────────────────────────────────
-    suspend fun getAllFlowers(call: ApplicationCall) {
+    suspend fun getAllZodiacs(call: ApplicationCall) {
         val search = call.request.queryParameters["search"] ?: ""
         val flowers = flowerRepository.getFlowers(search)
 
         call.respond(
             DataResponse(
                 status  = "success",
-                message = "Berhasil mengambil daftar bahasa bunga",
+                message = "Berhasil mengambil daftar data zodiak",
                 data    = mapOf("flowers" to flowers),
             )
         )
     }
 
     // ── GET /flowers/{id} ────────────────────────────────────────────────────
-    suspend fun getFlowerById(call: ApplicationCall) {
+    suspend fun getZodiacById(call: ApplicationCall) {
         val id = call.parameters["id"]
-            ?: throw AppException(400, "ID bunga tidak boleh kosong!")
+            ?: throw AppException(400, "ID zodiak tidak boleh kosong!")
 
         val flower = flowerRepository.getFlowerById(id)
-            ?: throw AppException(404, "Data bunga tidak ditemukan!")
+            ?: throw AppException(404, "Data zodiak tidak ditemukan!")
 
         call.respond(
             DataResponse(
                 status  = "success",
-                message = "Berhasil mengambil data bunga",
+                message = "Berhasil mengambil data zodiak",
                 data    = mapOf("flower" to flower),
             )
         )
     }
 
     // ── Parse multipart request ──────────────────────────────────────────────
-    private suspend fun getFlowerRequest(call: ApplicationCall): FlowerRequest {
+    private suspend fun getZodiacRequest(call: ApplicationCall): FlowerRequest {
         val req = FlowerRequest()
 
         val multipart = call.receiveMultipart(formFieldLimit = 1024 * 1024 * 5)
@@ -92,30 +92,30 @@ class FlowerService(private val flowerRepository: IFlowerRepository) {
     // ── Validate request ─────────────────────────────────────────────────────
     private fun validateFlowerRequest(req: FlowerRequest) {
         val v = ValidatorHelper(req.toMap())
-        v.required("namaUmum",   "Nama umum tidak boleh kosong")
-        v.required("namaLatin",  "Nama latin tidak boleh kosong")
-        v.required("makna",      "Makna tidak boleh kosong")
-        v.required("asalBudaya", "Asal budaya tidak boleh kosong")
+        v.required("namaUmum",   "Nama zodiak tidak boleh kosong")
+        v.required("namaLatin",  "Simbol/nama latin tidak boleh kosong")
+        v.required("makna",      "Elemen/sifat tidak boleh kosong")
+        v.required("asalBudaya", "Periode tanggal tidak boleh kosong")
         v.required("deskripsi",  "Deskripsi tidak boleh kosong")
         v.required("pathGambar", "Gambar tidak boleh kosong")
         v.validate()
 
         val file = File(req.pathGambar)
         if (!file.exists()) {
-            throw AppException(400, "Gambar bunga gagal diupload!")
+            throw AppException(400, "Gambar zodiak gagal diupload!")
         }
     }
 
     // ── POST /flowers ────────────────────────────────────────────────────────
-    suspend fun createFlower(call: ApplicationCall) {
-        val req = getFlowerRequest(call)
+    suspend fun createZodiac(call: ApplicationCall) {
+        val req = getZodiacRequest(call)
         validateFlowerRequest(req)
 
-        // Cek duplikasi nama umum
+        // Cek duplikasi nama
         val existing = flowerRepository.getFlowerByNamaUmum(req.namaUmum)
         if (existing != null) {
             File(req.pathGambar).takeIf { it.exists() }?.delete()
-            throw AppException(409, "Bunga dengan nama umum ini sudah terdaftar!")
+            throw AppException(409, "Zodiak dengan nama ini sudah terdaftar!")
         }
 
         val flowerId = flowerRepository.addFlower(req.toEntity())
@@ -123,21 +123,21 @@ class FlowerService(private val flowerRepository: IFlowerRepository) {
         call.respond(
             DataResponse(
                 status  = "success",
-                message = "Berhasil menambahkan data bunga",
+                message = "Berhasil menambahkan data zodiak",
                 data    = mapOf("flowerId" to flowerId),
             )
         )
     }
 
     // ── PUT /flowers/{id} ────────────────────────────────────────────────────
-    suspend fun updateFlower(call: ApplicationCall) {
+    suspend fun updateZodiac(call: ApplicationCall) {
         val id = call.parameters["id"]
-            ?: throw AppException(400, "ID bunga tidak boleh kosong!")
+            ?: throw AppException(400, "ID zodiak tidak boleh kosong!")
 
         val oldFlower = flowerRepository.getFlowerById(id)
-            ?: throw AppException(404, "Data bunga tidak ditemukan!")
+            ?: throw AppException(404, "Data zodiak tidak ditemukan!")
 
-        val req = getFlowerRequest(call)
+        val req = getZodiacRequest(call)
 
         // Pertahankan gambar lama jika tidak ada upload baru
         if (req.pathGambar.isEmpty()) {
@@ -146,12 +146,12 @@ class FlowerService(private val flowerRepository: IFlowerRepository) {
 
         validateFlowerRequest(req)
 
-        // Cek duplikasi nama umum (hanya jika nama berubah)
+        // Cek duplikasi nama (hanya jika nama berubah)
         if (req.namaUmum != oldFlower.namaUmum) {
             val existing = flowerRepository.getFlowerByNamaUmum(req.namaUmum)
             if (existing != null) {
                 File(req.pathGambar).takeIf { it.exists() }?.delete()
-                throw AppException(409, "Bunga dengan nama umum ini sudah terdaftar!")
+                throw AppException(409, "Zodiak dengan nama ini sudah terdaftar!")
             }
         }
 
@@ -162,31 +162,31 @@ class FlowerService(private val flowerRepository: IFlowerRepository) {
 
         val isUpdated = flowerRepository.updateFlower(id, req.toEntity())
         if (!isUpdated) {
-            throw AppException(400, "Gagal memperbarui data bunga!")
+            throw AppException(400, "Gagal memperbarui data zodiak!")
         }
 
         call.respond(
             DataResponse(
                 status  = "success",
-                message = "Berhasil mengubah data bunga",
+                message = "Berhasil mengubah data zodiak",
                 data    = null,
             )
         )
     }
 
     // ── DELETE /flowers/{id} ─────────────────────────────────────────────────
-    suspend fun deleteFlower(call: ApplicationCall) {
+    suspend fun deleteZodiac(call: ApplicationCall) {
         val id = call.parameters["id"]
-            ?: throw AppException(400, "ID bunga tidak boleh kosong!")
+            ?: throw AppException(400, "ID zodiak tidak boleh kosong!")
 
         val oldFlower = flowerRepository.getFlowerById(id)
-            ?: throw AppException(404, "Data bunga tidak ditemukan!")
+            ?: throw AppException(404, "Data zodiak tidak ditemukan!")
 
         val oldFile = File(oldFlower.pathGambar)
 
         val isDeleted = flowerRepository.removeFlower(id)
         if (!isDeleted) {
-            throw AppException(400, "Gagal menghapus data bunga!")
+            throw AppException(400, "Gagal menghapus data zodiak!")
         }
 
         oldFile.takeIf { it.exists() }?.delete()
@@ -194,14 +194,14 @@ class FlowerService(private val flowerRepository: IFlowerRepository) {
         call.respond(
             DataResponse(
                 status  = "success",
-                message = "Berhasil menghapus data bunga",
+                message = "Berhasil menghapus data zodiak",
                 data    = null,
             )
         )
     }
 
     // ── GET /flowers/{id}/image ──────────────────────────────────────────────
-    suspend fun getFlowerImage(call: ApplicationCall) {
+    suspend fun getZodiacImage(call: ApplicationCall) {
         val id = call.parameters["id"]
             ?: return call.respond(HttpStatusCode.BadRequest)
 

@@ -4,7 +4,7 @@ import org.delcom.repositories.FlowerRepository
 import org.delcom.repositories.IFlowerRepository
 import org.delcom.repositories.IPlantRepository
 import org.delcom.repositories.PlantRepository
-import org.delcom.services.FlowerService
+import org.delcom.services.ZodiacService
 import org.delcom.services.PlantService
 import org.delcom.services.ProfileService
 import org.koin.dsl.module
@@ -33,6 +33,6 @@ val appModule = module {
 
     // Flower Service
     single {
-        FlowerService(get())
+        ZodiacService(get())
     }
 }
