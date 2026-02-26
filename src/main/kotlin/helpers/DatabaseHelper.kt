@@ -1,7 +1,10 @@
 package org.delcom.helpers
 
 import io.ktor.server.application.*
+import org.delcom.tables.ZodiacTable
 import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.SchemaUtils
+import org.jetbrains.exposed.sql.transactions.transaction
 
 fun Application.configureDatabases() {
     val dbHost = environment.config.property("ktor.database.host").getString()
@@ -15,4 +18,9 @@ fun Application.configureDatabases() {
         user = dbUser,
         password = dbPassword
     )
+
+    // Buat tabel secara otomatis jika belum ada
+    transaction {
+        SchemaUtils.create(ZodiacTable)
+    }
 }
