@@ -37,9 +37,8 @@ class ZodiacService(private val zodiacRepository: IZodiacRepository) {
         )
     }
 
-    // Parse multipart form — shared by create & update
+    // Parse multipart — gunakan local var agar tidak ada masalah mutability
     private suspend fun getZodiacRequest(call: ApplicationCall): ZodiacRequest {
-        // Gunakan objek biasa (bukan data class) agar bisa di-mutate dengan aman
         var nama          = ""
         var simbol        = ""
         var elemen        = ""
@@ -49,32 +48,39 @@ class ZodiacService(private val zodiacRepository: IZodiacRepository) {
         var kecocokan     = ""
         var pathGambar    = ""
 
-        val multipart = call.receiveMultipart(formFieldLimit = 1024 * 1024 * 10)
+        // Naikkan limit ke 10MB untuk gambar
+        val multipart = call.receiveMultipart(formFieldLimit = 1024L * 1024L * 10L)
 
         multipart.forEachPart { part ->
             when (part) {
-                is PartData.FormItem -> when (part.name) {
-                    "nama"          -> nama          = part.value.trim()
-                    "simbol"        -> simbol        = part.value.trim()
-                    "elemen"        -> elemen        = part.value.trim()
-                    "tanggalLahir"  -> tanggalLahir  = part.value.trim()
-                    "deskripsi"     -> deskripsi     = part.value
-                    "karakteristik" -> karakteristik = part.value
-                    "kecocokan"     -> kecocokan     = part.value
+                is PartData.FormItem -> {
+                    when (part.name) {
+                        "nama"          -> nama          = part.value.trim()
+                        "simbol"        -> simbol        = part.value.trim()
+                        "elemen"        -> elemen        = part.value.trim()
+                        "tanggalLahir"  -> tanggalLahir  = part.value.trim()
+                        "deskripsi"     -> deskripsi     = part.value
+                        "karakteristik" -> karakteristik = part.value
+                        "kecocokan"     -> kecocokan     = part.value
+                    }
                 }
                 is PartData.FileItem -> {
-                    // Hanya proses jika ada nama file (tidak kosong)
                     val originalFileName = part.originalFileName
-                    if (!originalFileName.isNullOrBlank()) {
-                        val ext = originalFileName
-                            .substringAfterLast('.', "")
+                    // Hanya proses jika benar-benar ada file yang dikirim
+                    if (!originalFileName.isNullOrBlank() && originalFileName != "null") {
+                        val ext      = originalFileName.substringAfterLast('.', "")
                             .let { if (it.isNotEmpty()) ".$it" else "" }
                         val fileName = "${UUID.randomUUID()}$ext"
                         val filePath = "uploads/zodiacs/$fileName"
                         val file     = File(filePath)
                         file.parentFile?.mkdirs()
                         part.provider().copyAndClose(file.writeChannel())
-                        pathGambar = filePath
+                        if (file.exists() && file.length() > 0) {
+                            pathGambar = filePath
+                        } else {
+                            // File kosong/gagal, hapus
+                            file.delete()
+                        }
                     }
                 }
                 else -> {}
@@ -94,7 +100,6 @@ class ZodiacService(private val zodiacRepository: IZodiacRepository) {
         )
     }
 
-    // Validate — pathGambar required only for create
     private fun validateZodiacRequest(req: ZodiacRequest, requireImage: Boolean = true) {
         val v = ValidatorHelper(req.toMap())
         v.required("nama",          "Nama tidak boleh kosong")
@@ -106,10 +111,6 @@ class ZodiacService(private val zodiacRepository: IZodiacRepository) {
         v.required("kecocokan",     "Kecocokan tidak boleh kosong")
         if (requireImage) v.required("pathGambar", "Gambar tidak boleh kosong")
         v.validate()
-
-        if (req.pathGambar.isNotEmpty() && !File(req.pathGambar).exists()) {
-            throw AppException(400, "Gambar zodiak gagal diupload!")
-        }
     }
 
     // POST /zodiacs
@@ -138,31 +139,30 @@ class ZodiacService(private val zodiacRepository: IZodiacRepository) {
 
         val req = getZodiacRequest(call)
 
-        // Jika tidak ada gambar baru dikirim, gunakan gambar lama
-        val finalPathGambar = if (req.pathGambar.isEmpty()) oldZodiac.pathGambar else req.pathGambar
+        // Jika tidak ada gambar baru, pakai gambar lama
+        if (req.pathGambar.isEmpty()) {
+            req.pathGambar = oldZodiac.pathGambar
+        }
 
-        val finalReq = req.copy(pathGambar = finalPathGambar)
-
-        validateZodiacRequest(finalReq, requireImage = false)
+        validateZodiacRequest(req, requireImage = false)
 
         // Cek nama unik hanya jika nama berubah
-        if (finalReq.nama != oldZodiac.nama) {
-            val existing = zodiacRepository.getZodiacByName(finalReq.nama)
+        if (req.nama != oldZodiac.nama) {
+            val existing = zodiacRepository.getZodiacByName(req.nama)
             if (existing != null) {
-                // Hapus gambar baru jika ada konflik nama
-                if (req.pathGambar.isNotEmpty() && req.pathGambar != oldZodiac.pathGambar) {
+                if (req.pathGambar != oldZodiac.pathGambar) {
                     File(req.pathGambar).takeIf { it.exists() }?.delete()
                 }
                 throw AppException(409, "Zodiak dengan nama ini sudah terdaftar!")
             }
         }
 
-        // Hapus gambar lama jika diganti
-        if (finalReq.pathGambar != oldZodiac.pathGambar) {
+        // Hapus gambar lama jika diganti dengan yang baru
+        if (req.pathGambar != oldZodiac.pathGambar) {
             File(oldZodiac.pathGambar).takeIf { it.exists() }?.delete()
         }
 
-        val updated = zodiacRepository.updateZodiac(id, finalReq.toEntity())
+        val updated = zodiacRepository.updateZodiac(id, req.toEntity())
         if (!updated) throw AppException(400, "Gagal memperbarui data zodiak!")
 
         call.respond(DataResponse<Nothing>("success", "Berhasil mengubah data zodiak"))

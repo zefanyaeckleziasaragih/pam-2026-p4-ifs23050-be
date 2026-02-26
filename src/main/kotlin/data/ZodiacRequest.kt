@@ -3,6 +3,8 @@ package org.delcom.data
 import kotlinx.serialization.Serializable
 import org.delcom.entities.Zodiac
 
+// PENTING: semua field harus "var" bukan "val"
+// agar bisa di-assign ulang saat parsing multipart di ZodiacService
 @Serializable
 data class ZodiacRequest(
     var nama: String = "",
