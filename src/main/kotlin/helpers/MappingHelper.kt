@@ -6,6 +6,11 @@ import org.delcom.entities.Plant
 import org.jetbrains.exposed.sql.Transaction
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
+/**
+ * Semua transaksi DB dijalankan di satu shared Dispatchers.IO thread pool.
+ * Tidak ada perubahan logika — hanya pastikan tidak ada dispatcher baru
+ * yang dibuat per-call.
+ */
 suspend fun <T> suspendTransaction(block: Transaction.() -> T): T =
     newSuspendedTransaction(Dispatchers.IO, statement = block)
 
