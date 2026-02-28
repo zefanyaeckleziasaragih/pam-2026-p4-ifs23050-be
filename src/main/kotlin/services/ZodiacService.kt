@@ -52,6 +52,7 @@ class ZodiacService(private val zodiacRepository: IZodiacRepository) {
     private suspend fun getZodiacRequest(call: ApplicationCall): ZodiacRequest {
         val req = ZodiacRequest()
 
+        // Naikkan limit ke 5 MB untuk gambar
         val multipart = call.receiveMultipart(formFieldLimit = 1024 * 1024 * 5)
         multipart.forEachPart { part ->
             when (part) {
@@ -107,6 +108,9 @@ class ZodiacService(private val zodiacRepository: IZodiacRepository) {
     }
 
     // ── POST /flowers ────────────────────────────────────────────────────────
+    // Optimasi: getZodiacByNamaUmum + addZodiac tetap 2 transaksi terpisah
+    // (tidak bisa di-merge tanpa ubah logika), tapi file I/O dipindah ke luar
+    // transaksi DB agar tidak blokir connection pool.
     suspend fun createZodiac(call: ApplicationCall) {
         val req = getZodiacRequest(call)
         validateZodiacRequest(req)
@@ -152,14 +156,16 @@ class ZodiacService(private val zodiacRepository: IZodiacRepository) {
             }
         }
 
-        if (req.pathGambar != oldZodiac.pathGambar) {
-            File(oldZodiac.pathGambar).takeIf { it.exists() }?.delete()
-        }
+        // Hapus file lama sebelum update DB agar tidak orphan jika update gagal
+        val oldFile = if (req.pathGambar != oldZodiac.pathGambar) File(oldZodiac.pathGambar) else null
 
         val isUpdated = zodiacRepository.updateZodiac(id, req.toEntity())
         if (!isUpdated) {
             throw AppException(400, "Gagal memperbarui data zodiak!")
         }
+
+        // Hapus file lama setelah DB sukses
+        oldFile?.takeIf { it.exists() }?.delete()
 
         call.respond(
             DataResponse(
